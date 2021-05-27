@@ -1,4 +1,4 @@
-from os import read
+from time import time_ns
 import sys
 import torch
 from numpy import array_equal
@@ -20,11 +20,11 @@ def getParams():
     method = sys.argv[2]
 
   if len(sys.argv) < 4:
-    num_reads = 100
+    nReads = 100
   else:
-    num_reads = int(sys.argv[3])
+    nReads = int(sys.argv[3])
     
-  return path, method, num_reads
+  return path, method, nReads
 
 def getDwaveQubo(Q, indexQUBO):
   qubo = {}
@@ -55,51 +55,81 @@ def getMinXt(bestSample, indexQUBO, posOfIndex):
   return minXt
 
 def getMinInfo(record):
-  readN = None
+  readFound = None
   occurrences = None
   minEnergy = float('inf')
   for i, (xt, energy, occ, *_) in enumerate(record):
     if energy < minEnergy:
       minEnergy = energy
       occurrences = occ
-      readN = i
-  return readN, occurrences
+      readFound = i
+  return readFound, occurrences
     
-def dwaveSolve(Q, indexQUBO, posOfIndex, label, method='SA', num_reads=100):
+def writeCSV(n, probName, alpha, method, nReads, dsName, calcQUBOTime, annealTime, readFound, occurrences, minY, expY, minXt):
+  with open('./tests/testsAnneal.csv', 'a') as file:
+    if '10K' in dsName:
+      examples = 10000
+    elif '100K' in dsName:
+      examples = 100000
+    elif '1M' in dsName:
+      examples = 1000000
+    template = '{},'*11 + ',,' + '{},'*2 + '\'{}\'' + '\n'
+    testResult = template.format(n,probName,alpha,examples,method,nReads,dsName,calcQUBOTime/10**6,annealTime/10**6,readFound,occurrences,minY,expY,minXt.int().tolist())
+    file.write(testResult)
+
+def dwaveSolve(Q, indexQUBO, posOfIndex, label, method='SA', nReads=100):
 
   qubo = getDwaveQubo(Q,indexQUBO)
 
   sampler = getSampler(method=method)
-  sampleset = sampler.sample_qubo(qubo,num_reads=num_reads,label=label)
-  dwave.inspector.show(sampleset)
+  startAnneal = time_ns()
+  sampleset = sampler.sample_qubo(qubo,num_reads=nReads,label=label)
+  endAnneal = time_ns()
+  if 'timing' in sampleset.info.keys():
+    print(sampleset.info['timing'])
+    annealTime = sampleset.info['timing']['qpu_access_time']
+  else:
+    annealTime = (endAnneal - startAnneal)//10**3
+  #dwave.inspector.show(sampleset)
   minXt = getMinXt(sampleset.first.sample,indexQUBO,posOfIndex)
   minX = minXt.view(-1,1)
   minY = torch.matmul(torch.matmul(minXt,Q),minX).item()
 
-  readN, occurrences = getMinInfo(sampleset.record)
+  readFound, occurrences = getMinInfo(sampleset.record)
 
   with open('samplerOut.txt', 'w') as file:
     file.write(str(sampleset))
 
-  return minXt, minY, readN, occurrences
+  return minXt, minY, readFound, occurrences, annealTime
 
 def main():
-  path, method, num_reads = getParams()
+  startCalcQUBO = time_ns()
+
+  path, method, nReads = getParams()
 
   #calculate the QUBO matrix given the dataset path
-  Q,indexQUBO,posOfIndex,n = calcQUBOMatrix(path,alpha='1/(ri*qi)')
+  alpha = '1/(ri*qi)'
+  Q,indexQUBO,posOfIndex,n = calcQUBOMatrix(path,alpha=alpha)
   Q = torch.tensor(Q)
   
   #calculate the expected solution value
   expXt, expY = getExpectedSolution(path,Q,indexQUBO,posOfIndex,n)
 
+  endCalcQUBO = time_ns()
+  calcQUBOTime = (endCalcQUBO - startCalcQUBO)//10**3
+
   #find minimum of the QUBO problem xt Q x using the specified sampler
-  problemName = path[path.find('/')+1:path.find('.')]
-  label = '{} - {} reads'.format(problemName,num_reads)
-  minXt, minY, readN, occurrences = dwaveSolve(Q,indexQUBO,posOfIndex,label,method=method,num_reads=num_reads)
-  
+  dsName = path[path.find('/')+1:path.find('.')]
+  label = '{} - {} reads'.format(dsName,nReads)
+  minXt,minY,readFound,occurrences,annealTime = dwaveSolve(Q,indexQUBO,posOfIndex,label,method=method,nReads=nReads)
+
   printInfoResults(expXt,expY,minXt,minY,n)
-  print('Method: {}\nNumber of reads: {}\nOccurrencies of minX: {}\nFound minX at read: {}'.format(method,num_reads,occurrences,readN))
+  print('Method: {}\nNumber of reads: {}\nOccurrencies of minX: {}\nFound minX at read: {}\nQUBO formulation time: {}\nAnnealing time: {}'.format(method,nReads,occurrences,readFound, calcQUBOTime/10**6, annealTime/10**6))
+
+  afterName = 'Exp' if 'Exp' in path else '1'
+  probName = path[path.find('/')+1:path.find(afterName)]
+
+  writeCSV(n, probName, alpha, method, nReads, dsName, calcQUBOTime, annealTime, readFound, occurrences, minY, expY, minXt)
 
 if __name__ == '__main__':
   main()
