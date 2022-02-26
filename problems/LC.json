@@ -1,0 +1,45 @@
+{
+  "name": "LC",
+  "variables": {
+    "pollution":{
+			"states": ["L","H"],
+			"parents": [],
+			"cpt": [0.90]
+		},
+    "smoker":{
+			"states": ["F","T"],
+			"parents": [],
+			"cpt": [0.70]
+		},
+    "cancer":{
+			"states": ["F","T"],
+			"parents": ["pollution","smoker"],
+			"cpt": [[ [0.999], [0.97] ],
+              [ [0.98],  [0.95] ]]
+		},
+    "xray":{
+			"states": ["Neg","Pos"],
+			"parents": ["cancer"],
+			"cpt": [[0.80],
+              [0.10]]
+		},
+    "dyspnoea":{
+			"states": ["F","T"],
+			"parents": ["cancer"],
+			"cpt": [[0.70],
+              [0.35]]
+		}
+  },
+  "solution": [ [0,0,1,0,0],
+							  [0,0,1,0,0],
+							  [0,0,0,1,1],
+							  [0,0,0,0,0],
+							  [0,0,0,0,0] ],
+  "toporder": [
+    "pollution",
+	  "smoker",
+	  "cancer",
+	  "xray",
+	  "dyspnoea"
+  ]
+}

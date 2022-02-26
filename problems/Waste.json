@@ -1,0 +1,79 @@
+{
+  "name": "Waste",
+  "variables": {
+    "burningRegimen": {
+			"states": ["S","U"],
+			"parents": [],
+			"cpt": [0.85]
+		},
+    "filterState": {
+			"states": ["I","D"],
+			"parents": [],
+			"cpt": [0.95]
+		},
+    "wasteType": {
+			"states": ["I","H"],
+			"parents": [],
+			"cpt": [0.29]
+		},
+    "co2Concentration": {
+			"states": ["H","L"],
+			"parents": ["burningRegimen"],
+			"cpt": [[0.03],
+              [0.77]]
+		},
+    "filterEfficiency": {
+			"states": ["H","L"],
+			"parents": ["filterState"],
+			"cpt": [[1.00],
+              [0.00]]
+		},
+    "metalsInWaste": {
+			"states": ["H","L"],
+			"parents": ["wasteType"],
+			"cpt": [[0.99],
+              [0.00]]
+		},
+    "lightPenetrability": {
+			"states": ["H","L"],
+			"parents": ["dustEmission"],
+			"cpt": [[0.02],
+              [0.99]]
+		},
+    "dustEmission": {
+			"states": ["H","L"],
+			"parents": ["burningRegimen","wasteType","filterEfficiency"],
+			"cpt": [ [[ [0.00],     [1.00] ],
+                [ [0.00],     [0.99] ]],
+               [[ [0.000024], [1.00] ],
+                [ [0.003],    [1.00] ]]
+             ]
+		},
+    "metalsEmission": {
+			"states": ["H","L"],
+			"parents": ["metalsInWaste","dustEmission"],
+			"cpt": [[ [1.00], [0.99] ],
+              [ [0.00], [0.00] ]]
+		}
+  },
+  "solution": [ [0,0,0,1,0,0,0,1,0],
+                [0,0,0,0,1,0,0,0,0],
+                [0,0,0,0,0,1,0,1,0],
+                [0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,1,0],
+                [0,0,0,0,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,1,0,1],
+                [0,0,0,0,0,0,0,0,0] ],
+  "toporder": [
+    "burningRegimen",
+    "filterState",
+    "wasteType",
+    "co2Concentration",
+    "filterEfficiency",
+    "metalsInWaste",
+    "dustEmission",
+    "lightPenetrability",
+    "metalsEmission"
+  ]
+}

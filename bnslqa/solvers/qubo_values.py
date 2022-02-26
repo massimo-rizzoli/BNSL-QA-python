@@ -1,7 +1,6 @@
 import math
 
-def getValues(filename, alpha='1/(ri*qi)'):
-  examples, n, states = getExamples(filename)
+def getValues(examples, n, states, alpha='1/(ri*qi)'):
   #calculation of parentSets
   parentSets = calcParentSets(n)
   #calculation of w
@@ -14,7 +13,7 @@ def getValues(filename, alpha='1/(ri*qi)'):
   deltaTrans = calcDeltaTrans(n,delta)
   #calculation of deltaConsist
   deltaConsist = calcDeltaConsist(n,deltaTrans)
-  return n, parentSets, w, deltaMax, deltaTrans, deltaConsist
+  return parentSets, w, deltaMax, deltaTrans, deltaConsist
 
 def getExamples(filename):
   with open(filename,'r') as f:
@@ -24,6 +23,9 @@ def getExamples(filename):
     n = int(info[0])
     #number of states for each variable
     states = [ int(si) for si in info[1:n+1]]
+    #ignore second and third lines (name and solution)
+    lines.pop(0)
+    lines.pop(0)
     #get examples
     examples = []
     for l in lines:
@@ -222,9 +224,3 @@ def calcDeltaConsist(n, deltaTrans):
   #+1 to satisfy the > constraint
   deltaConsist = (n-2)*deltaTrans + 1
   return deltaConsist
-
-def main():
-  n, parentSets, w, deltaMax, deltaTrans, deltaConsist = getValues('datasets/DataMHP.txt')
-
-if __name__ == '__main__':
-  main()

@@ -1,4 +1,4 @@
-from QUBOValues import getValues
+from bnslqa.solvers.qubo_values import getValues
 
 def red(s):
   return "\033[91m{}\033[00m".format(s)
@@ -40,9 +40,9 @@ def printMatrix(m, index, startRow=0, endRow=None, startCol=0, endCol=None, cell
     print(' '*indexW + '-'*cellW*(endCol-startCol))
 
 
-def calcQUBOMatrix(path,alpha='1/(ri*qi)'):
+def calcQUBOMatrix(examples, n, states, alpha='1/(ri*qi)'):
   #get and calculate values
-  n, parentSets, w, deltaMax, deltaTrans, deltaConsist = getValues(path,alpha=alpha)
+  parentSets, w, deltaMax, deltaTrans, deltaConsist = getValues(examples,n,states,alpha=alpha)
   #calculate d
   d = [ ('d',j,i) for j in range(n) for i in range(n) if j != i ]
   #calculate y (m=2)
@@ -64,7 +64,7 @@ def calcQUBOMatrix(path,alpha='1/(ri*qi)'):
   addHtrans(Q, posOfIndex, n, deltaTrans)
   #add Hconsist component to Q
   addHconsist(Q, posOfIndex, n, deltaConsist)
-  return Q,indexQUBO,posOfIndex,n
+  return Q,indexQUBO,posOfIndex
 
 def addHscore(Q, posOfIndex, n, parentSets, w):
   for i in range(n):
@@ -167,9 +167,3 @@ def calcPosOfIndex(indexQUBO):
     index = indexQUBO[i]
     posOfIndex[index] = i
   return posOfIndex
-
-def main():
-  calcQUBOMatrix('datasets/DataMHP.txt')
-
-if __name__ == '__main__':
-  main()

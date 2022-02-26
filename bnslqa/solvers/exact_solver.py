@@ -1,7 +1,7 @@
 from time import time_ns
 import torch
-from QUBOMatrix import calcQUBOMatrix
-from solverUtils import getPath, setBestParams, getExpectedSolution, printInfoResults, getPath, getNumExamples
+from bnslqa.solvers.qubo_matrix import calcQUBOMatrix
+from bnslqa.solvers.solver_utils import setBestParams, getExpectedSolution, printInfoResults, getNumExamples, getData
 from multiprocessing import Process, Manager
 
 def isMax(a):
@@ -70,21 +70,22 @@ def bruteForceMultiproc(Q, indexQUBO, posOfIndex, n, optim=True):
   return minXt,minY
 
 def writeCSV(n, probName, alpha, dsName, calcQUBOTime, timeES, optimisation, minY, expY, minXt, path):
-  with open('./tests/testsExhaustiveSearch.csv', 'a') as file:
+  with open('./tests/tests_exhaustive_search.csv', 'a') as file:
     examples = getNumExamples(path)
     template = '{},'*4 + '\'{}\',' + '{},'*3 + ',,' + '{},'*2 + '\'{}\'' + '\n'
     testResult = template.format(n,probName,alpha,examples, optimisation,dsName,calcQUBOTime/10**6,timeES/10**6,minY,expY,minXt.int().tolist())
     file.write(testResult)
 
-def main():
+def main(args):
   startCalcQUBO = time_ns()
-  path = getPath()
+  path = args.dataset
   #calculate the QUBO matrix given the dataset path
   alpha = '1/(ri*qi)'
-  Q,indexQUBO,posOfIndex,n = calcQUBOMatrix(path,alpha=alpha)
+  examples, n, states, problemName, solution = getData(path)
+  Q,indexQUBO,posOfIndex = calcQUBOMatrix(examples,n,states,alpha=alpha)
   Q = torch.tensor(Q)
   #calculate the expected solution value
-  expXt, expY = getExpectedSolution(path,Q,indexQUBO,posOfIndex,n)
+  expXt, expY = getExpectedSolution(solution,Q,indexQUBO,posOfIndex,n)
   endCalcQUBO = time_ns()
   calcQUBOTime = (endCalcQUBO - startCalcQUBO)//10**3
   #find minimum of the QUBO problem xt Q x using bruteforce
@@ -100,9 +101,4 @@ def main():
     optimisation = 'y,r'
   print('Optimization: {}\nQUBO formulation time: {}\nSearch time: {}'.format(optimisation, calcQUBOTime/10**6, timeES/10**6))
   #write data to csv file
-  afterName = 'Exp' if 'Exp' in path else '1'
-  probName = path[path.find('/')+1:path.find(afterName)]
-  writeCSV(n, probName, alpha, dsName, calcQUBOTime, timeES, optimisation, minY, expY, minXt, path)
-
-if __name__ == '__main__':
-  main()
+  writeCSV(n, problemName, alpha, dsName, calcQUBOTime, timeES, optimisation, minY, expY, minXt, path)

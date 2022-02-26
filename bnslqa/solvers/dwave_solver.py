@@ -1,30 +1,13 @@
 from time import time_ns
-import sys
 import os
 import torch
-from QUBOMatrix import calcQUBOMatrix
-from solverUtils import getPath, getExpectedSolution, printInfoResults, getPath, getNumExamples
+from bnslqa.solvers.qubo_matrix import calcQUBOMatrix
+from bnslqa.solvers.solver_utils import getExpectedSolution, printInfoResults, getNumExamples, getData
 
 from dimod.reference.samplers import ExactSolver
 from neal import SimulatedAnnealingSampler
 from dwave.system import DWaveSampler, EmbeddingComposite
 
-
-def getParams():
-  path = getPath()
-  if len(sys.argv) < 3:
-    method = 'SA'
-  else:
-    method = sys.argv[2]
-  if len(sys.argv) < 4:
-    nReads = 100
-  else:
-    nReads = int(sys.argv[3])
-  if len(sys.argv) < 5:
-    annealTime = 1
-  else:
-    annealTime = int(sys.argv[4])
-  return path, method, nReads, annealTime
 
 def getDwaveQubo(Q, indexQUBO):
   qubo = {}
@@ -65,7 +48,7 @@ def getMinInfo(record):
 def writeCSV(n, probName, alpha, method, nReads, annealTime,
              dsName, calcQUBOTime, annealTimeRes, readFound,
              occurrences, minY, expY, minXt, path):
-  with open('./tests/testsAnneal.csv', 'a') as file:
+  with open('./tests/tests_anneal.csv', 'a') as file:
     examples = getNumExamples(path)
     if method != 'QA':
       annealTime = '-'
@@ -73,7 +56,7 @@ def writeCSV(n, probName, alpha, method, nReads, annealTime,
     testResult = template.format(n,probName,alpha,examples,method,nReads,annealTime,dsName,calcQUBOTime/10**6,annealTimeRes/10**6,readFound,occurrences,minY,expY,minXt.int().tolist())
     file.write(testResult)
 
-def dwaveSolve(Q, indexQUBO, posOfIndex, label, method='SA', nReads=100, annealTime=1):
+def dwaveSolve(Q, indexQUBO, posOfIndex, label, method='SA', nReads=10000, annealTime=99):
   qubo = getDwaveQubo(Q,indexQUBO)
   sampler = getSampler(method=method)
   startAnneal = time_ns()
@@ -93,15 +76,19 @@ def dwaveSolve(Q, indexQUBO, posOfIndex, label, method='SA', nReads=100, annealT
   readFound, occurrences = getMinInfo(sampleset.record)
   return minXt, minY, readFound, occurrences, annealTime
 
-def main():
+def main(args):
   startCalcQUBO = time_ns()
-  path, method, nReads, annealTime = getParams()
+  path = args.dataset
+  method = args.strategy
+  nReads = args.reads
+  annealTime = args.anneal
   #calculate the QUBO matrix given the dataset path
   alpha = '1/(ri*qi)'
-  Q,indexQUBO,posOfIndex,n = calcQUBOMatrix(path,alpha=alpha)
+  examples, n, states, problemName, solution = getData(path)
+  Q, indexQUBO, posOfIndex = calcQUBOMatrix(examples,n,states,alpha=alpha)
   Q = torch.tensor(Q)
   #calculate the expected solution value
-  expXt, expY = getExpectedSolution(path,Q,indexQUBO,posOfIndex,n)
+  expXt, expY = getExpectedSolution(solution,Q,indexQUBO,posOfIndex,n)
   endCalcQUBO = time_ns()
   calcQUBOTime = (endCalcQUBO - startCalcQUBO)//10**3
   #find minimum of the QUBO problem xt Q x using the specified sampler
@@ -111,11 +98,6 @@ def main():
   printInfoResults(expXt,expY,minXt,minY,n)
   print('Method: {}\nNumber of reads: {}\nOccurrencies of minX: {}\nFound minX at read: {}\nQUBO formulation time: {}\nAnnealing time: {}'.format(method,nReads,occurrences,readFound, calcQUBOTime/10**6, annealTimeRes/10**6))
   #write data to csv file
-  afterName = 'Exp' if 'Exp' in path else '1'
-  probName = path[path.find('/')+1:path.find(afterName)]
-  writeCSV(n, probName, alpha, method, nReads, annealTime,
+  writeCSV(n, problemName, alpha, method, nReads, annealTime,
            dsName, calcQUBOTime, annealTimeRes, readFound,
            occurrences, minY, expY, minXt, path)
-
-if __name__ == '__main__':
-  main()

@@ -1,5 +1,7 @@
 __pycache__/
 
-generators/gen5tests.sh
+gen5tests.sh
+fix
+fix_dataset.py
 
 README.pdf
