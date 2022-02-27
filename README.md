@@ -116,8 +116,8 @@ python -m bnslqa generate \
 Problem definition json files for the datasets used in the experiments can be found in the `problems` folder.
 
 **Note:** for *expected* datasets the number of generated examples might not be exactly `SIZE`.
-This is due to the fact that for each configuration of variables with probability $p$, a number $\lfloor p\cdot$`SIZE`$\rceil$ of examples for that configuration will be generated.
-If $p$ is small enough with respect to `SIZE`, the number of examples will equate to zero, and with many such low-probability configurations, the actual size may differ from `SIZE`.
+This is due to the fact that for each configuration of variables with probability *p*, a number  `round(p*SIZE)` of examples for that configuration will be generated.
+If *p* is small enough with respect to `SIZE`, the number of examples will equate to zero, and with many such low-probability configurations, the actual size may differ from `SIZE`.
 To reduce the effect, choose larger `SIZE` if necessary when generating *expected* datasets.
 Instead, for *non-expected* datasets (i.e. with non-zero variance) a number of exactly `SIZE` examples will always be generated.
 
@@ -216,7 +216,7 @@ Each variable must contain three arrays:
 
 The conditional probability table `"cpt"` is structured as follows: the first dimension refers to the states of the first parents, the second to the states of the second parent, and so on, while the last dimension refers to the states of the variable which owns `"cpt"`. The last dimension does not contain the last state for the variable, since it can be computed as 1 minus the sum of the others.
 
-E.g.: considering the variable `"host"` and its conditional probability table, `cpt[0][2][1]` has value `1.00`, meaning that the probability of the *host choosing door 1* (`1`), given that the *player chose door 0* (`0`) and the *car was behind door 1* (`1`), is equal to `1.00` ($p(host=1 | player=0, car=2) = 1.00$).
+E.g.: considering the variable `"host"` and its conditional probability table, `cpt[0][2][1]` has value `1.00`, meaning that the probability of the *host choosing door 1* (`1`), given that the *player chose door 0* (`0`) and the *car was behind door 1* (`1`), is equal to `1.00` (p(host=1 | player=0, car=2) = 1.00).
 
 ### Defining "solution"
 
