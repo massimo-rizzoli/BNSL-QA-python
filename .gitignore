@@ -1,4 +1,7 @@
 __pycache__/
+.python-version
+
+problems/test
 
 gen5tests.sh
 fix

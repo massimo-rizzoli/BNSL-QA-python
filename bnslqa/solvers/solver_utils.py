@@ -112,7 +112,7 @@ def printAdjMat(n, xt):
   narcs = n*(n-1)
   adjMat = torch.cat([torch.cat([torch.zeros(n-1).view(-1,1),xt[:narcs].view(-1,n)],dim=-1).view(-1),torch.zeros(1)]).view(n,n).int().tolist()
   for i in range(n):
-    s = '[' + str(adjMat[0][0]) + ','
+    s = '[' + str(adjMat[i][0]) + ','
     for j in range(1,n-1):
       s += ' ' + str(adjMat[i][j]) + ','
 
